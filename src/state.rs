@@ -28,6 +28,8 @@ pub struct MarketState {
     pub paused: bool,
     pub bump: u8,
     pub oracle_authority: Pubkey,
+    pub min_vault_base_reserve: u64,
+    pub min_vault_quote_reserve: u64,
 }
 
 /// On-chain GlobalConfig account state.

@@ -250,6 +250,9 @@ mod tests {
             max_price_deviation_bps: 100,
             paused: false,
             bump: 255,
+            oracle_authority: Pubkey::default(),
+            min_vault_base_reserve: 0,
+            min_vault_quote_reserve: 0,
         }
     }
 
@@ -517,10 +520,10 @@ mod tests {
             missing_dynamic_accounts_as_default: false,
         }).unwrap();
 
-        // 8 accounts total
-        assert_eq!(result.account_metas.len(), 8);
+        // 9 accounts total (includes sysvar_instructions for CPI guard)
+        assert_eq!(result.account_metas.len(), 9);
 
-        // Account ordering: user, global_config, market, vault_base, vault_quote, user_base, user_quote, token_program
+        // Account ordering: user, global_config, market, vault_base, vault_quote, user_base, user_quote, token_program, sysvar_instructions
         assert_eq!(result.account_metas[0].pubkey, user);
         assert!(result.account_metas[0].is_signer);
         assert_eq!(result.account_metas[5].pubkey, user_base_ata);  // destination = user_base for BuyBase
