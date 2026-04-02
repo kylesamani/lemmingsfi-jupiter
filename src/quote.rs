@@ -105,13 +105,45 @@ pub fn compute_swap_output(
     }
 }
 
-/// Convenience: create QuoteInput from a MarketState.
+/// Compute an additive spread penalty (in bps) based on oracle age.
+/// Linearly scales from 0 at slot 0 to max_staleness_slots/2 bps at max_staleness_slots.
+/// E.g., with max_staleness_slots=100, a 50-slot-old oracle adds 25 bps to each side.
+/// This makes stale-oracle arbitrage progressively more expensive.
+/// Matches on-chain `swap_common::oracle_age_spread_penalty` exactly.
+pub fn oracle_age_spread_penalty(oracle_slot: u64, current_slot: u64, max_staleness_slots: u64) -> u16 {
+    let slots_since = current_slot.saturating_sub(oracle_slot);
+    let max_penalty = max_staleness_slots / 2;
+    let penalty = (slots_since / 2).min(max_penalty);
+    penalty as u16
+}
+
+/// Convenience: create QuoteInput from a MarketState (no age penalty).
 impl From<&crate::state::MarketState> for QuoteInput {
     fn from(market: &crate::state::MarketState) -> Self {
         Self {
             oracle_price: market.oracle_price,
             bid_spread_bps: market.bid_spread_bps,
             ask_spread_bps: market.ask_spread_bps,
+            fee_bps: market.fee_bps,
+        }
+    }
+}
+
+impl QuoteInput {
+    /// Create QuoteInput from a MarketState with oracle age spread penalty applied.
+    /// `current_slot` should be the latest slot from the cluster.
+    /// This produces quotes that match on-chain behavior where spreads widen
+    /// as the oracle ages.
+    pub fn from_market_with_age(market: &crate::state::MarketState, current_slot: u64) -> Self {
+        let penalty = oracle_age_spread_penalty(
+            market.oracle_slot,
+            current_slot,
+            market.max_staleness_slots,
+        );
+        Self {
+            oracle_price: market.oracle_price,
+            bid_spread_bps: market.bid_spread_bps.saturating_add(penalty).min(10_000),
+            ask_spread_bps: market.ask_spread_bps.saturating_add(penalty).min(10_000),
             fee_bps: market.fee_bps,
         }
     }
@@ -236,6 +268,30 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn test_oracle_age_spread_penalty_zero() {
+        // Same slot = 0 penalty
+        assert_eq!(oracle_age_spread_penalty(100, 100, 200), 0);
+    }
+
+    #[test]
+    fn test_oracle_age_spread_penalty_linear() {
+        // 50 slots old, max_staleness=200 → penalty = 50/2 = 25 bps
+        assert_eq!(oracle_age_spread_penalty(100, 150, 200), 25);
+    }
+
+    #[test]
+    fn test_oracle_age_spread_penalty_capped() {
+        // 1000 slots old, max_staleness=200 → capped at 200/2 = 100 bps
+        assert_eq!(oracle_age_spread_penalty(100, 1100, 200), 100);
+    }
+
+    #[test]
+    fn test_oracle_age_spread_penalty_at_max() {
+        // Exactly at max staleness: penalty = 200/2 = 100
+        assert_eq!(oracle_age_spread_penalty(100, 300, 200), 100);
     }
 
     /// Reference implementation matching tests/src/helpers/math.rs

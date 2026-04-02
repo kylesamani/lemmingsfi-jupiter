@@ -8,8 +8,9 @@ use jupiter_amm_interface::{
 use solana_account::ReadableAccount;
 use solana_instruction::AccountMeta;
 use solana_pubkey::Pubkey;
+use std::sync::atomic::Ordering;
 
-pub use quote::{compute_swap_output, QuoteError, QuoteInput, QuoteResult, SwapDirection};
+pub use quote::{compute_swap_output, oracle_age_spread_penalty, QuoteError, QuoteInput, QuoteResult, SwapDirection};
 pub use state::{deserialize_market, DeserializeError, GlobalConfigState, MarketState};
 
 /// LemmingsFi program ID.
@@ -17,9 +18,6 @@ pub const PROGRAM_ID: Pubkey = solana_pubkey::pubkey!("BQEJZUB4CzoT6UhRffoCkqCyq
 
 /// SPL Token program ID.
 const TOKEN_PROGRAM_ID: Pubkey = solana_pubkey::pubkey!("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
-
-/// Instructions sysvar ID.
-const SYSVAR_INSTRUCTIONS_ID: Pubkey = solana_pubkey::pubkey!("Sysvar1nstructions1111111111111111111111111");
 
 /// Anchor instruction discriminator: sha256("global:<name>")[..8]
 fn anchor_discriminator(name: &str) -> [u8; 8] {
@@ -44,10 +42,12 @@ pub struct LemmingsFiAmm {
     vault_quote_amount: u64,
     /// Whether the global kill switch is active.
     global_paused: bool,
+    /// Clock reference for oracle age spread penalty calculation.
+    clock_ref: jupiter_amm_interface::ClockRef,
 }
 
 impl Amm for LemmingsFiAmm {
-    fn from_keyed_account(keyed_account: &KeyedAccount, _amm_context: &AmmContext) -> Result<Self, AmmError> {
+    fn from_keyed_account(keyed_account: &KeyedAccount, amm_context: &AmmContext) -> Result<Self, AmmError> {
         let market = deserialize_market(keyed_account.account.data())
             .map_err(|e| AmmError::from(e.to_string()))?;
         let (global_config, _) = state::pda::derive_global_config(&PROGRAM_ID);
@@ -59,6 +59,7 @@ impl Amm for LemmingsFiAmm {
             vault_base_amount: 0,
             vault_quote_amount: 0,
             global_paused: false,
+            clock_ref: amm_context.clock_ref.clone(),
         })
     }
 
@@ -110,7 +111,8 @@ impl Amm for LemmingsFiAmm {
             SwapDirection::SellBase
         };
 
-        let input = QuoteInput::from(&self.market);
+        let current_slot = self.clock_ref.slot.load(Ordering::Relaxed);
+        let input = QuoteInput::from_market_with_age(&self.market, current_slot);
         let result = compute_swap_output(&input, direction, quote_params.amount)
             .map_err(|e| AmmError::from(e.to_string()))?;
 
@@ -181,7 +183,6 @@ impl Amm for LemmingsFiAmm {
             AccountMeta::new(user_base, false),
             AccountMeta::new(user_quote, false),
             AccountMeta::new_readonly(TOKEN_PROGRAM_ID, false),
-            AccountMeta::new_readonly(SYSVAR_INSTRUCTIONS_ID, false),
         ];
 
         Ok(SwapAndAccountMetas {
@@ -520,10 +521,10 @@ mod tests {
             missing_dynamic_accounts_as_default: false,
         }).unwrap();
 
-        // 9 accounts total (includes sysvar_instructions for CPI guard)
-        assert_eq!(result.account_metas.len(), 9);
+        // 8 accounts total
+        assert_eq!(result.account_metas.len(), 8);
 
-        // Account ordering: user, global_config, market, vault_base, vault_quote, user_base, user_quote, token_program, sysvar_instructions
+        // Account ordering: user, global_config, market, vault_base, vault_quote, user_base, user_quote, token_program
         assert_eq!(result.account_metas[0].pubkey, user);
         assert!(result.account_metas[0].is_signer);
         assert_eq!(result.account_metas[5].pubkey, user_base_ata);  // destination = user_base for BuyBase

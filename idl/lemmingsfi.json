@@ -1,0 +1,1002 @@
+{
+  "address": "BQEJZUB4CzoT6UhRffoCkqCyqQNrCPCSGHcPEmsdbEsX",
+  "metadata": {
+    "name": "lemmingsfi",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "LemmingsFi AMM for Solana"
+  },
+  "instructions": [
+    {
+      "name": "create_market",
+      "docs": [
+        "Create a new trading market (e.g., SOL/USDC)."
+      ],
+      "discriminator": [
+        103,
+        226,
+        97,
+        235,
+        200,
+        188,
+        251,
+        254
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "global_config"
+          ]
+        },
+        {
+          "name": "global_config"
+        },
+        {
+          "name": "base_mint"
+        },
+        {
+          "name": "quote_mint"
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "base_mint"
+              },
+              {
+                "kind": "account",
+                "path": "quote_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_base",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  95,
+                  98,
+                  97,
+                  115,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_quote",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  95,
+                  113,
+                  117,
+                  111,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "CreateMarketParams"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "deposit",
+      "docs": [
+        "Deposit tokens into the market vault. Authority-gated."
+      ],
+      "discriminator": [
+        242,
+        35,
+        198,
+        137,
+        82,
+        225,
+        242,
+        182
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "market"
+        },
+        {
+          "name": "vault_base",
+          "writable": true
+        },
+        {
+          "name": "vault_quote",
+          "writable": true
+        },
+        {
+          "name": "authority_base",
+          "docs": [
+            "Authority's base token account."
+          ],
+          "writable": true
+        },
+        {
+          "name": "authority_quote",
+          "docs": [
+            "Authority's quote token account."
+          ],
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "base_amount",
+          "type": "u64"
+        },
+        {
+          "name": "quote_amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "initialize",
+      "docs": [
+        "Initialize the global config. Called once by the protocol deployer."
+      ],
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "global_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "fee_recipient"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "default_fee_bps",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "swap",
+      "docs": [
+        "Execute a swap against the vault. Called by aggregators (Jupiter, DFlow, Titan)."
+      ],
+      "discriminator": [
+        248,
+        198,
+        158,
+        145,
+        225,
+        117,
+        135,
+        200
+      ],
+      "accounts": [
+        {
+          "name": "user",
+          "signer": true
+        },
+        {
+          "name": "global_config"
+        },
+        {
+          "name": "market",
+          "writable": true
+        },
+        {
+          "name": "vault_base",
+          "writable": true
+        },
+        {
+          "name": "vault_quote",
+          "writable": true
+        },
+        {
+          "name": "user_base",
+          "docs": [
+            "User's base token account."
+          ],
+          "writable": true
+        },
+        {
+          "name": "user_quote",
+          "docs": [
+            "User's quote token account."
+          ],
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "direction",
+          "type": {
+            "defined": {
+              "name": "SwapDirection"
+            }
+          }
+        },
+        {
+          "name": "amount_in",
+          "type": "u64"
+        },
+        {
+          "name": "min_amount_out",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "update_oracle",
+      "docs": [
+        "Update the oracle price and spreads. Called by the off-chain pricing engine.",
+        "This is the hot path — target <200 CU (Anchor), <150 CU after Pinocchio port."
+      ],
+      "discriminator": [
+        112,
+        41,
+        209,
+        18,
+        248,
+        226,
+        252,
+        188
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "market",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "new_price",
+          "type": "u64"
+        },
+        {
+          "name": "new_conf",
+          "type": "u64"
+        },
+        {
+          "name": "new_spread_bid",
+          "type": "u16"
+        },
+        {
+          "name": "new_spread_ask",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "update_params",
+      "docs": [
+        "Update market parameters (spreads, fees, limits). Authority-gated."
+      ],
+      "discriminator": [
+        108,
+        178,
+        190,
+        95,
+        94,
+        203,
+        116,
+        20
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "global_config"
+          ]
+        },
+        {
+          "name": "global_config"
+        },
+        {
+          "name": "market",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "UpdateParamsData"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "withdraw",
+      "docs": [
+        "Withdraw tokens from the market vault. Authority-gated."
+      ],
+      "discriminator": [
+        183,
+        18,
+        70,
+        156,
+        148,
+        109,
+        161,
+        34
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "market"
+          ]
+        },
+        {
+          "name": "market"
+        },
+        {
+          "name": "vault_base",
+          "writable": true
+        },
+        {
+          "name": "vault_quote",
+          "writable": true
+        },
+        {
+          "name": "authority_base",
+          "docs": [
+            "Authority's base token account."
+          ],
+          "writable": true
+        },
+        {
+          "name": "authority_quote",
+          "docs": [
+            "Authority's quote token account."
+          ],
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "base_amount",
+          "type": "u64"
+        },
+        {
+          "name": "quote_amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "set_global_paused",
+      "docs": [
+        "Emergency kill switch — pause or unpause all swaps globally."
+      ],
+      "discriminator": [148, 120, 202, 2, 211, 211, 10, 109],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": ["global_config"]
+        },
+        {
+          "name": "global_config",
+          "writable": true,
+          "pda": {
+            "seeds": [{ "kind": "const", "value": [99, 111, 110, 102, 105, 103] }]
+          }
+        }
+      ],
+      "args": [
+        { "name": "paused", "type": "bool" }
+      ]
+    },
+    {
+      "name": "set_oracle_authority",
+      "docs": [
+        "Change the oracle authority for a market."
+      ],
+      "discriminator": [39, 155, 66, 106, 213, 226, 114, 174],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": ["market"]
+        },
+        {
+          "name": "market",
+          "writable": true
+        }
+      ],
+      "args": [
+        { "name": "new_oracle_authority", "type": "pubkey" }
+      ]
+    },
+    {
+      "name": "set_market_authority",
+      "docs": [
+        "Transfer market authority to a new address."
+      ],
+      "discriminator": [124, 100, 155, 213, 122, 121, 177, 115],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": ["market"]
+        },
+        {
+          "name": "market",
+          "writable": true
+        }
+      ],
+      "args": [
+        { "name": "new_authority", "type": "pubkey" }
+      ]
+    },
+    {
+      "name": "set_config_authority",
+      "docs": [
+        "Transfer global config authority to a new address."
+      ],
+      "discriminator": [16, 200, 212, 18, 95, 43, 107, 89],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": ["global_config"]
+        },
+        {
+          "name": "global_config",
+          "writable": true
+        }
+      ],
+      "args": [
+        { "name": "new_authority", "type": "pubkey" }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "GlobalConfig",
+      "discriminator": [
+        149,
+        8,
+        156,
+        202,
+        160,
+        252,
+        176,
+        217
+      ]
+    },
+    {
+      "name": "Market",
+      "discriminator": [
+        219,
+        190,
+        213,
+        55,
+        0,
+        227,
+        198,
+        154
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "Unauthorized",
+      "msg": "Unauthorized: caller is not the authority"
+    },
+    {
+      "code": 6001,
+      "name": "MarketPaused",
+      "msg": "Market is paused"
+    },
+    {
+      "code": 6002,
+      "name": "GlobalPaused",
+      "msg": "Global config is paused"
+    },
+    {
+      "code": 6003,
+      "name": "StaleOracle",
+      "msg": "Oracle price is stale"
+    },
+    {
+      "code": 6004,
+      "name": "PriceDeviationTooLarge",
+      "msg": "Oracle price deviation exceeds maximum allowed"
+    },
+    {
+      "code": 6005,
+      "name": "InvalidOraclePrice",
+      "msg": "Oracle price must be greater than zero"
+    },
+    {
+      "code": 6006,
+      "name": "SlippageExceeded",
+      "msg": "Slippage tolerance exceeded"
+    },
+    {
+      "code": 6007,
+      "name": "OrderTooSmall",
+      "msg": "Order size below minimum"
+    },
+    {
+      "code": 6008,
+      "name": "OrderTooLarge",
+      "msg": "Order size above maximum"
+    },
+    {
+      "code": 6009,
+      "name": "InsufficientLiquidity",
+      "msg": "Insufficient vault liquidity"
+    },
+    {
+      "code": 6010,
+      "name": "MathOverflow",
+      "msg": "Math overflow"
+    },
+    {
+      "code": 6011,
+      "name": "InvalidFee",
+      "msg": "Invalid fee: must be <= 10000 bps"
+    },
+    {
+      "code": 6012,
+      "name": "InvalidSpread",
+      "msg": "Invalid spread: must be <= 10000 bps"
+    },
+    {
+      "code": 6013,
+      "name": "ZeroDeposit",
+      "msg": "Deposit amount must be greater than zero"
+    },
+    {
+      "code": 6014,
+      "name": "ZeroWithdraw",
+      "msg": "Withdraw amount must be greater than zero"
+    },
+    {
+      "code": 6015,
+      "name": "InvalidSwapDirection",
+      "msg": "Invalid swap direction"
+    }
+  ],
+  "types": [
+    {
+      "name": "CreateMarketParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bid_spread_bps",
+            "type": "u16"
+          },
+          {
+            "name": "ask_spread_bps",
+            "type": "u16"
+          },
+          {
+            "name": "fee_bps",
+            "type": "u16"
+          },
+          {
+            "name": "min_order_size",
+            "type": "u64"
+          },
+          {
+            "name": "max_order_size",
+            "type": "u64"
+          },
+          {
+            "name": "concentration",
+            "type": "u64"
+          },
+          {
+            "name": "max_staleness_slots",
+            "type": "u64"
+          },
+          {
+            "name": "max_price_deviation_bps",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GlobalConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "docs": [
+              "The authority that can create markets and update global settings."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "fee_recipient",
+            "docs": [
+              "The account that receives protocol fees."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "default_fee_bps",
+            "docs": [
+              "Default taker fee in basis points (e.g., 5 = 0.05%)."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "paused",
+            "docs": [
+              "Global kill switch. When true, all swaps are rejected."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump seed."
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Market",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "base_mint",
+            "docs": [
+              "The base token mint (e.g., wrapped SOL)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "quote_mint",
+            "docs": [
+              "The quote token mint (e.g., USDC)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "vault_base",
+            "docs": [
+              "Token account holding base tokens (PDA-owned)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "vault_quote",
+            "docs": [
+              "Token account holding quote tokens (PDA-owned)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "authority",
+            "docs": [
+              "The authority that can update the oracle and manage this market."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "oracle_price",
+            "docs": [
+              "Current oracle price in fixed-point with 6 decimal places.",
+              "e.g., SOL at $150.123456 is stored as 150_123_456."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "oracle_conf",
+            "docs": [
+              "Confidence interval in the same fixed-point format."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "oracle_timestamp",
+            "docs": [
+              "Unix timestamp of the last oracle update."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "oracle_slot",
+            "docs": [
+              "Solana slot of the last oracle update."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "bid_spread_bps",
+            "docs": [
+              "Bid spread from mid price in basis points."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "ask_spread_bps",
+            "docs": [
+              "Ask spread from mid price in basis points."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "fee_bps",
+            "docs": [
+              "Taker fee in basis points."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "min_order_size",
+            "docs": [
+              "Minimum order size in base token smallest units."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "max_order_size",
+            "docs": [
+              "Maximum order size in base token smallest units."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "concentration",
+            "docs": [
+              "Liquidity concentration parameter. Higher = tighter liquidity around oracle price."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "max_staleness_slots",
+            "docs": [
+              "Maximum allowed oracle staleness in slots before swaps are rejected."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "max_price_deviation_bps",
+            "docs": [
+              "Maximum allowed price deviation per update in basis points."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "paused",
+            "docs": [
+              "Market-level pause flag."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump seed."
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SwapDirection",
+      "docs": [
+        "0 = Buy base (user sends quote, receives base)",
+        "1 = Sell base (user sends base, receives quote)"
+      ],
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "BuyBase"
+          },
+          {
+            "name": "SellBase"
+          }
+        ]
+      }
+    },
+    {
+      "name": "UpdateParamsData",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bid_spread_bps",
+            "type": {
+              "option": "u16"
+            }
+          },
+          {
+            "name": "ask_spread_bps",
+            "type": {
+              "option": "u16"
+            }
+          },
+          {
+            "name": "fee_bps",
+            "type": {
+              "option": "u16"
+            }
+          },
+          {
+            "name": "min_order_size",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "max_order_size",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "concentration",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "max_staleness_slots",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "max_price_deviation_bps",
+            "type": {
+              "option": "u16"
+            }
+          },
+          {
+            "name": "paused",
+            "type": {
+              "option": "bool"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
